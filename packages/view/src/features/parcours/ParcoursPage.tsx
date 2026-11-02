@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { Card, PageContainer, PageHeader } from "@/components/layout/Page";
 import { FormInput } from "@/components/ui/FormElements";
-import { Plus, FileCog, Calendar, GraduationCap, CheckCircle2, AlertCircle } from "lucide-react";
+import { Plus, FileCog, Calendar, GraduationCap, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { ParcoursFormModal } from "./ParcoursFormModal";
 import { fetchParcours, type Parcours } from "./parcours.api";
+
+const PAGE_SIZE = 10;
 
 /** Surligne la partie du nom qui correspond à la recherche. */
 function highlightMatch(text: string, query: string) {
@@ -33,6 +35,7 @@ export function ParcoursPage() {
   const [filterYear, setFilterYear] = useState<"ALL" | 1 | 2>("ALL");
   const [search, setSearch] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     fetchParcours()
@@ -58,6 +61,17 @@ export function ParcoursPage() {
       return matchYear && matchSearch;
     });
   }, [parcoursList, filterYear, search]);
+
+  // Retour page 1 quand la recherche ou le filtre change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterYear]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredParcours.length / PAGE_SIZE));
+  const paginatedParcours = filteredParcours.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
 
   // Aperçu limité pour rester lisible pendant la saisie
   const searchPreview = filteredParcours.slice(0, 5);
@@ -232,56 +246,86 @@ export function ParcoursPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {filteredParcours.map((p) => {
-                const isM1 = p.anneeFormation === 1;
+            <div className="space-y-4">
+              <div className="space-y-2">
+                {paginatedParcours.map((p) => {
+                  const isM1 = p.anneeFormation === 1;
 
-                return (
-                  <div
-                    key={p.id}
-                    className={`relative flex items-center gap-4 rounded-xl border p-3.5 pl-4 transition-all hover:shadow-xs ${
-                      isM1
-                        ? "border-violet-200 bg-violet-50/40 hover:border-violet-300"
-                        : "border-teal-200 bg-teal-50/40 hover:border-teal-300"
-                    }`}
-                  >
+                  return (
                     <div
-                      className={`absolute left-0 top-2.5 bottom-2.5 w-1.5 rounded-r ${
-                        isM1 ? "bg-violet-700" : "bg-teal-600"
-                      }`}
-                    />
-
-                    <span
-                      className={`shrink-0 px-2.5 py-0.5 text-[11px] font-bold uppercase rounded text-white ${
-                        isM1 ? "bg-violet-700" : "bg-teal-600"
+                      key={p.id}
+                      className={`relative flex items-center gap-4 rounded-xl border p-3.5 pl-4 transition-all hover:shadow-xs ${
+                        isM1
+                          ? "border-violet-200 bg-violet-50/40 hover:border-violet-300"
+                          : "border-teal-200 bg-teal-50/40 hover:border-teal-300"
                       }`}
                     >
-                      {isM1 ? "Master 1" : "Master 2"}
-                    </span>
+                      <div
+                        className={`absolute left-0 top-2.5 bottom-2.5 w-1.5 rounded-r ${
+                          isM1 ? "bg-violet-700" : "bg-teal-600"
+                        }`}
+                      />
 
-                    <h4 className="min-w-0 flex-1 text-sm font-semibold text-zinc-900 leading-snug truncate">
-                      {highlightMatch(p.nomParcours, query)}
-                    </h4>
+                      <span
+                        className={`shrink-0 px-2.5 py-0.5 text-[11px] font-bold uppercase rounded text-white ${
+                          isM1 ? "bg-violet-700" : "bg-teal-600"
+                        }`}
+                      >
+                        {isM1 ? "Master 1" : "Master 2"}
+                      </span>
 
-                    <p className="hidden sm:flex shrink-0 items-center gap-1.5 text-xs text-zinc-500">
-                      <Calendar className="h-3.5 w-3.5 text-zinc-400" />
-                      <span>Créé le {formatDate(p.created_at)}</span>
-                    </p>
+                      <h4 className="min-w-0 flex-1 text-sm font-semibold text-zinc-900 leading-snug truncate">
+                        {highlightMatch(p.nomParcours, query)}
+                      </h4>
 
-                    <button
-                      onClick={() => {
-                        setSelectedParcours(p);
-                        setIsModalOpen(true);
-                      }}
-                      title="Configurer le parcours"
-                      className="shrink-0 flex items-center gap-1.5 rounded-lg border border-sky-950/20 bg-sky-950 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-sky-900 transition-colors shadow-2xs"
-                    >
-                      <FileCog className="h-4 w-4" />
-                      <span>Gérer</span>
-                    </button>
-                  </div>
-                );
-              })}
+                      <p className="hidden sm:flex shrink-0 items-center gap-1.5 text-xs text-zinc-500">
+                        <Calendar className="h-3.5 w-3.5 text-zinc-400" />
+                        <span>Créé le {formatDate(p.created_at)}</span>
+                      </p>
+
+                      <button
+                        onClick={() => {
+                          setSelectedParcours(p);
+                          setIsModalOpen(true);
+                        }}
+                        title="Configurer le parcours"
+                        className="shrink-0 flex items-center gap-1.5 rounded-lg border border-sky-950/20 bg-sky-950 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-sky-900 transition-colors shadow-2xs"
+                      >
+                        <FileCog className="h-4 w-4" />
+                        <span>Gérer</span>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-3 border-t border-zinc-100 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    disabled={currentPage === 1}
+                    aria-label="Page précédente"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 disabled:pointer-events-none disabled:opacity-40"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+
+                  <span className="text-xs font-medium text-zinc-600">
+                    Page {currentPage} / {totalPages}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                    disabled={currentPage === totalPages}
+                    aria-label="Page suivante"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 disabled:pointer-events-none disabled:opacity-40"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </Card>
