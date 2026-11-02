@@ -1,8 +1,26 @@
 import { useState, useEffect, useMemo } from "react";
 import { Card, PageContainer, PageHeader } from "@/components/layout/Page";
+import { FormInput } from "@/components/ui/FormElements";
 import { Plus, FileCog, Calendar, GraduationCap, CheckCircle2, AlertCircle } from "lucide-react";
 import { ParcoursFormModal } from "./ParcoursFormModal";
 import { fetchParcours, type Parcours } from "./parcours.api";
+
+/** Surligne la partie du nom qui correspond à la recherche. */
+function highlightMatch(text: string, query: string) {
+  const q = query.trim();
+  if (!q) return text;
+
+  const index = text.toLowerCase().indexOf(q.toLowerCase());
+  if (index === -1) return text;
+
+  return (
+    <>
+      {text.slice(0, index)}
+      <mark className="rounded-sm bg-amber-200/80 px-0.5 text-inherit">{text.slice(index, index + q.length)}</mark>
+      {text.slice(index + q.length)}
+    </>
+  );
+}
 
 export function ParcoursPage() {
   const [parcoursList, setParcoursList] = useState<Parcours[]>([]);
@@ -13,6 +31,8 @@ export function ParcoursPage() {
   const [pageError, setPageError] = useState<string | null>(null);
 
   const [filterYear, setFilterYear] = useState<"ALL" | 1 | 2>("ALL");
+  const [search, setSearch] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     fetchParcours()
@@ -31,9 +51,17 @@ export function ParcoursPage() {
   };
 
   const filteredParcours = useMemo(() => {
-    if (filterYear === "ALL") return parcoursList;
-    return parcoursList.filter((p) => p.anneeFormation === filterYear);
-  }, [parcoursList, filterYear]);
+    const query = search.trim().toLowerCase();
+    return parcoursList.filter((p) => {
+      const matchYear = filterYear === "ALL" || p.anneeFormation === filterYear;
+      const matchSearch = query === "" || p.nomParcours.toLowerCase().includes(query);
+      return matchYear && matchSearch;
+    });
+  }, [parcoursList, filterYear, search]);
+
+  // Aperçu limité pour rester lisible pendant la saisie
+  const searchPreview = filteredParcours.slice(0, 5);
+  const query = search.trim();
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "Date non renseignée";
@@ -96,7 +124,64 @@ export function ParcoursPage() {
           </div>
         )}
 
-        <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+        <div className="flex flex-col gap-3 border-b border-zinc-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full sm:max-w-xs">
+            <FormInput
+              id="parcours-search"
+              type="search"
+              placeholder="Rechercher un parcours"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPreviewOpen(true);
+              }}
+              onFocus={() => setPreviewOpen(true)}
+              onBlur={() => setTimeout(() => setPreviewOpen(false), 120)}
+              aria-label="Rechercher un parcours"
+              aria-expanded={previewOpen && query.length > 0}
+              aria-controls="parcours-search-preview"
+            />
+
+            {previewOpen && query.length > 0 && (
+              <ul
+                id="parcours-search-preview"
+                className="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md border border-zinc-200 bg-white py-1 shadow-xs"
+              >
+                {searchPreview.length === 0 ? (
+                  <li className="px-3 py-2 text-xs text-zinc-500">Aucun résultat</li>
+                ) : (
+                  searchPreview.map((p) => {
+                    const isM1 = p.anneeFormation === 1;
+                    return (
+                      <li key={p.id}>
+                        <button
+                          type="button"
+                          className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-zinc-50"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setSearch(p.nomParcours);
+                            setPreviewOpen(false);
+                          }}
+                        >
+                          <span className="truncate text-sm text-zinc-900">
+                            {highlightMatch(p.nomParcours, query)}
+                          </span>
+                          <span
+                            className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-white ${
+                              isM1 ? "bg-purple-900" : "bg-cyan-800"
+                            }`}
+                          >
+                            {isM1 ? "M1" : "M2"}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })
+                )}
+              </ul>
+            )}
+          </div>
+
           <span className="text-xs font-medium text-zinc-500">
             {filteredParcours.length} parcours affiché{filteredParcours.length > 1 ? "s" : ""}
           </span>
@@ -141,7 +226,9 @@ export function ParcoursPage() {
               <GraduationCap className="h-10 w-10 text-zinc-300 mb-2" />
               <p className="text-sm font-medium text-zinc-700">Aucun parcours disponible</p>
               <p className="text-xs text-zinc-400 mt-1">
-                Aucun parcours n'est enregistré pour cette sélection.
+                {search.trim()
+                  ? "Aucun parcours ne correspond à cette recherche."
+                  : "Aucun parcours n'est enregistré pour cette sélection."}
               </p>
             </div>
           ) : (
@@ -174,7 +261,7 @@ export function ParcoursPage() {
                       </span>
 
                       <h4 className="text-sm font-semibold text-zinc-900 leading-snug">
-                        {p.nomParcours}
+                        {highlightMatch(p.nomParcours, query)}
                       </h4>
 
                       <p className="flex items-center gap-1.5 text-xs text-zinc-500">
