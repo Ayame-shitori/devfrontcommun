@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Card, PageContainer, PageHeader } from "@/components/layout/Page";
-import { FormInput } from "@/components/ui/FormElements";
+import { Dialog } from "@/components/ui/Dialog";
+import { Button, FormInput } from "@/components/ui/FormElements";
 import { Plus, FileCog, Calendar, GraduationCap, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { ParcoursFormModal } from "./ParcoursFormModal";
 import { fetchParcours, type Parcours } from "./parcours.api";
@@ -27,6 +28,7 @@ function highlightMatch(text: string, query: string) {
 export function ParcoursPage() {
   const [parcoursList, setParcoursList] = useState<Parcours[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedParcours, setSelectedParcours] = useState<Parcours | null>(null);
 
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
@@ -254,7 +256,20 @@ export function ParcoursPage() {
                   return (
                     <div
                       key={p.id}
-                      className={`relative flex items-center gap-4 rounded-xl border p-3.5 pl-4 transition-all hover:shadow-xs ${
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        setSelectedParcours(p);
+                        setIsDetailOpen(true);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setSelectedParcours(p);
+                          setIsDetailOpen(true);
+                        }
+                      }}
+                      className={`relative flex cursor-pointer items-center gap-4 rounded-xl border p-3.5 pl-4 transition-all hover:shadow-xs ${
                         isM1
                           ? "border-violet-200 bg-violet-50/40 hover:border-violet-300"
                           : "border-teal-200 bg-teal-50/40 hover:border-teal-300"
@@ -284,7 +299,8 @@ export function ParcoursPage() {
                       </p>
 
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setSelectedParcours(p);
                           setIsModalOpen(true);
                         }}
@@ -330,6 +346,58 @@ export function ParcoursPage() {
           )}
         </Card>
       </div>
+
+      {/* Même Dialog que la création : on change seulement le contenu affiché */}
+      <Dialog
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        title="Détail du parcours"
+        icon={<GraduationCap className="h-5 w-5 text-sky-950" />}
+      >
+        {selectedParcours && (
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-zinc-500">Nom</p>
+              <p className="text-sm font-semibold text-zinc-900">{selectedParcours.nomParcours}</p>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-zinc-500">Année de formation</p>
+              <span
+                className={`inline-block px-2.5 py-0.5 text-[11px] font-bold uppercase rounded text-white ${
+                  selectedParcours.anneeFormation === 1 ? "bg-violet-700" : "bg-teal-600"
+                }`}
+              >
+                {selectedParcours.anneeFormation === 1 ? "Master 1" : "Master 2"}
+              </span>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-zinc-500">Date de création</p>
+              <p className="flex items-center gap-1.5 text-sm text-zinc-700">
+                <Calendar className="h-3.5 w-3.5 text-zinc-400" />
+                {formatDate(selectedParcours.created_at)}
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-zinc-100 pt-4">
+              <Button type="button" variant="secondary" onClick={() => setIsDetailOpen(false)}>
+                Fermer
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={() => {
+                  setIsDetailOpen(false);
+                  setIsModalOpen(true);
+                }}
+              >
+                Modifier
+              </Button>
+            </div>
+          </div>
+        )}
+      </Dialog>
 
       <ParcoursFormModal
         isOpen={isModalOpen}
