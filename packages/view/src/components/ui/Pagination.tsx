@@ -11,7 +11,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex items-center justify-center gap-3 border-t border-zinc-100 pt-3">
+    <div className="flex items-center justify-center gap-3">
       <button
         type="button"
         onClick={() => onPageChange(Math.max(1, currentPage - 1))}

@@ -1,4 +1,4 @@
-/** Surligne dans un texte la partie correspondant à la recherche. */
+/** Surligne discrètement la partie du texte correspondant à la recherche. */
 export function highlightMatch(text: string, query: string) {
   const q = query.trim();
   if (!q) return text;
@@ -9,7 +9,7 @@ export function highlightMatch(text: string, query: string) {
   return (
     <>
       {text.slice(0, index)}
-      <mark className="rounded-sm bg-amber-200/80 px-0.5 text-inherit">
+      <mark className="bg-transparent font-semibold text-sky-950 underline decoration-sky-950/30 decoration-2 underline-offset-2">
         {text.slice(index, index + q.length)}
       </mark>
       {text.slice(index + q.length)}

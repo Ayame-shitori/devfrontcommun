@@ -25,3 +25,15 @@ dist-ssr
 
 # SQLite database (recreated at startup)
 packages/back/data.db
+
+# Impeccable / AI harness (local only — do not push)
+.agent/
+.agents/
+.claude/
+.codex/
+.cursor/
+.gemini/
+PRODUCT.md
+DESIGN.md
+DESIGN.md.*
+.impeccable/

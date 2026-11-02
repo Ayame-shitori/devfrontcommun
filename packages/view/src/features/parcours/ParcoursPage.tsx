@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, PageContainer, PageHeader } from "@/components/layout/Page";
 import { Dialog } from "@/components/ui/Dialog";
 import { Button, FormInput } from "@/components/ui/FormElements";
+import { ListBadge, ListRow } from "@/components/ui/ListRow";
 import { Pagination, paginateItems } from "@/components/ui/Pagination";
 import {
   SortSelect,
@@ -214,13 +215,9 @@ export function ParcoursPage() {
                           <span className="truncate text-sm text-zinc-900">
                             {highlightMatch(p.nomParcours, query)}
                           </span>
-                          <span
-                            className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-white ${
-                              isM1 ? "bg-violet-700" : "bg-teal-600"
-                            }`}
-                          >
+                          <ListBadge tone={isM1 ? "violet" : "teal"}>
                             {isM1 ? "M1" : "M2"}
-                          </span>
+                          </ListBadge>
                         </button>
                       </li>
                     );
@@ -244,33 +241,33 @@ export function ParcoursPage() {
               />
             </div>
 
-            <div className="flex w-full items-center gap-1.5 overflow-x-auto rounded-lg border border-zinc-200 bg-zinc-50 p-1 sm:w-auto lg:shrink-0">
+            <div className="flex w-full items-center gap-1 overflow-x-auto rounded-md border border-zinc-200 bg-white p-0.5 sm:w-auto lg:shrink-0">
               <button
                 onClick={() => setFilterYear("ALL")}
-                className={`rounded-md px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
+                className={`rounded px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
                   filterYear === "ALL"
-                    ? "bg-white text-zinc-900 shadow-2xs"
-                    : "text-zinc-600 hover:text-zinc-900"
+                    ? "bg-zinc-900 text-white"
+                    : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
                 }`}
               >
                 Tous ({parcoursList.length})
               </button>
               <button
                 onClick={() => setFilterYear(1)}
-                className={`rounded-md px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
+                className={`rounded px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
                   filterYear === 1
-                    ? "bg-violet-700 text-white shadow-2xs"
-                    : "text-violet-700 hover:bg-violet-50"
+                    ? "bg-violet-800 text-white"
+                    : "text-violet-800 hover:bg-violet-50"
                 }`}
               >
                 M1 ({parcoursList.filter((p) => p.anneeFormation === 1).length})
               </button>
               <button
                 onClick={() => setFilterYear(2)}
-                className={`rounded-md px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
+                className={`rounded px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
                   filterYear === 2
-                    ? "bg-teal-600 text-white shadow-2xs"
-                    : "text-teal-700 hover:bg-teal-50"
+                    ? "bg-teal-700 text-white"
+                    : "text-teal-800 hover:bg-teal-50"
                 }`}
               >
                 M2 ({parcoursList.filter((p) => p.anneeFormation === 2).length})
@@ -281,15 +278,15 @@ export function ParcoursPage() {
 
         <Card>
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Loader2 className="mb-2 h-8 w-8 animate-spin text-sky-950" />
-              <p className="text-sm font-medium text-zinc-700">Chargement des parcours…</p>
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Loader2 className="mb-3 h-6 w-6 animate-spin text-sky-950" />
+              <p className="text-sm text-zinc-600">Chargement des parcours…</p>
             </div>
           ) : filteredParcours.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <GraduationCap className="h-10 w-10 text-zinc-300 mb-2" />
-              <p className="text-sm font-medium text-zinc-700">Aucun parcours disponible</p>
-              <p className="text-xs text-zinc-400 mt-1">
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <GraduationCap className="mb-3 h-8 w-8 text-zinc-300" />
+              <p className="text-sm font-medium text-zinc-800">Aucun parcours disponible</p>
+              <p className="mt-1 max-w-sm text-xs text-zinc-500">
                 {search.trim()
                   ? "Aucun parcours ne correspond à cette recherche."
                   : filterYear !== "ALL"
@@ -298,71 +295,47 @@ export function ParcoursPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="space-y-2">
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {paginatedParcours.map((p) => {
                   const isM1 = p.anneeFormation === 1;
+                  const tone = isM1 ? "violet" : "teal";
 
                   return (
-                    <div
+                    <ListRow
                       key={p.id}
-                      role="button"
-                      tabIndex={0}
+                      variant="card"
+                      tone={tone}
                       onClick={() => {
                         setSelectedParcours(p);
                         setIsDetailOpen(true);
                       }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          setSelectedParcours(p);
-                          setIsDetailOpen(true);
-                        }
-                      }}
-                      className={`relative flex cursor-pointer flex-col gap-3 rounded-xl border p-3.5 pl-4 transition-all hover:shadow-xs sm:flex-row sm:items-center sm:gap-4 ${
-                        isM1
-                          ? "border-violet-200 bg-violet-50/40 hover:border-violet-300"
-                          : "border-teal-200 bg-teal-50/40 hover:border-teal-300"
-                      }`}
-                    >
-                      <div
-                        className={`absolute left-0 top-2.5 bottom-2.5 w-1.5 rounded-r ${
-                          isM1 ? "bg-violet-700" : "bg-teal-600"
-                        }`}
-                      />
-
-                      <div className="min-w-0 flex-1 space-y-1.5">
-                        <span
-                          className={`inline-block px-2.5 py-0.5 text-[11px] font-bold uppercase rounded text-white ${
-                            isM1 ? "bg-violet-700" : "bg-teal-600"
-                          }`}
+                      actions={
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedParcours(p);
+                            setIsModalOpen(true);
+                          }}
+                          title="Configurer le parcours"
+                          className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50 sm:w-auto"
                         >
-                          {isM1 ? "Master 1" : "Master 2"}
-                        </span>
+                          <FileCog className="h-3.5 w-3.5" />
+                          <span>Gérer</span>
+                        </button>
+                      }
+                    >
+                      <ListBadge tone={tone}>{isM1 ? "Master 1" : "Master 2"}</ListBadge>
 
-                        <h4 className="text-sm font-semibold text-zinc-900 leading-snug break-words">
-                          {highlightMatch(p.nomParcours, query)}
-                        </h4>
+                      <h4 className="text-[15px] font-medium leading-snug tracking-tight break-words text-zinc-900">
+                        {highlightMatch(p.nomParcours, query)}
+                      </h4>
 
-                        <p className="flex items-center gap-1.5 text-xs text-zinc-500">
-                          <Calendar className="h-3.5 w-3.5 text-zinc-400" />
-                          <span>Créé le {formatDate(p.created_at)}</span>
-                        </p>
-                      </div>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedParcours(p);
-                          setIsModalOpen(true);
-                        }}
-                        title="Configurer le parcours"
-                        className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-sky-950/20 bg-sky-950 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-sky-900 transition-colors shadow-2xs sm:w-auto sm:shrink-0"
-                      >
-                        <FileCog className="h-4 w-4" />
-                        <span>Gérer</span>
-                      </button>
-                    </div>
+                      <p className="flex items-center gap-1.5 text-xs text-zinc-500">
+                        <Calendar className="h-3.5 w-3.5 text-zinc-400" />
+                        <span>Créé le {formatDate(p.created_at)}</span>
+                      </p>
+                    </ListRow>
                   );
                 })}
               </div>
@@ -393,13 +366,9 @@ export function ParcoursPage() {
 
             <div className="space-y-1">
               <p className="text-xs font-medium text-zinc-500">Année de formation</p>
-              <span
-                className={`inline-block px-2.5 py-0.5 text-[11px] font-bold uppercase rounded text-white ${
-                  selectedParcours.anneeFormation === 1 ? "bg-violet-700" : "bg-teal-600"
-                }`}
-              >
+              <ListBadge tone={selectedParcours.anneeFormation === 1 ? "violet" : "teal"}>
                 {selectedParcours.anneeFormation === 1 ? "Master 1" : "Master 2"}
-              </span>
+              </ListBadge>
             </div>
 
             <div className="space-y-1">
