@@ -3,6 +3,7 @@ import { features } from "@/config/features"
 import { ExercicesPage } from "@/features/exercices/ExercicesPage"
 import { HomePage } from "@/features/home/HomePage"
 import { ParcoursPage } from "@/features/parcours/ParcoursPage"
+import { validateParcoursSearch } from "@/features/parcours/parcours.search"
 import {
   createRootRoute,
   createRoute,
@@ -24,6 +25,7 @@ const indexRoute = createRoute({
 const parcoursRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/parcours",
+  validateSearch: validateParcoursSearch,
   component: ParcoursPage,
 })
 

@@ -2,6 +2,7 @@ import { cn } from "@/utils/cn"
 import { useEffect, useState } from "react"
 import { Link, useRouterState } from "@tanstack/react-router"
 import { PanelLeftClose, PanelLeftOpen, X } from "lucide-react"
+import { loadParcoursSearch } from "@/features/parcours/parcours.search"
 import { navItems } from "./navigation"
 
 type SidebarProps = {
@@ -72,6 +73,8 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
             <Link
               key={item.to}
               to={item.to}
+              // Retrouver recherche/filtre/tri en revenant sur Parcours
+              search={item.to === "/parcours" ? loadParcoursSearch() : undefined}
               activeOptions={{ exact: item.to === "/" }}
               title={isOpen || mobileOpen ? undefined : item.label}
               className={cn(

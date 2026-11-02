@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { getRouteApi } from "@tanstack/react-router";
 import { Card, PageContainer, PageHeader } from "@/components/layout/Page";
 import { Dialog } from "@/components/ui/Dialog";
 import { Button, FormInput } from "@/components/ui/FormElements";
@@ -14,10 +15,18 @@ import { highlightMatch } from "@/utils/highlightMatch";
 import { Plus, FileCog, Calendar, GraduationCap, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { ParcoursFormModal } from "./ParcoursFormModal";
 import { fetchParcours, type Parcours } from "./parcours.api";
+import {
+  hasParcoursSearchState,
+  loadParcoursSearch,
+  resolveParcoursSearch,
+  saveParcoursSearch,
+  toParcoursSearchParams,
+  type ParcoursAnnee,
+  type ParcoursSort,
+} from "./parcours.search";
 
 const PAGE_SIZE = 10;
-
-type ParcoursSort = "desc" | "asc" | "name-asc" | "name-desc";
+const parcoursRoute = getRouteApi("/parcours");
 
 const PARCOURS_SORT_OPTIONS: SortOption<ParcoursSort>[] = [
   { value: "desc", label: "Plus récents" },
@@ -27,6 +36,11 @@ const PARCOURS_SORT_OPTIONS: SortOption<ParcoursSort>[] = [
 ];
 
 export function ParcoursPage() {
+  const urlSearch = parcoursRoute.useSearch();
+  const navigate = parcoursRoute.useNavigate();
+  const { recherche: search, annee: filterYear, tri: sortOrder, page: currentPage } =
+    resolveParcoursSearch(urlSearch);
+
   const [parcoursList, setParcoursList] = useState<Parcours[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,12 +49,26 @@ export function ParcoursPage() {
 
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
-
-  const [filterYear, setFilterYear] = useState<"ALL" | 1 | 2>("ALL");
-  const [sortOrder, setSortOrder] = useState<ParcoursSort>("desc");
-  const [search, setSearch] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
+
+  /** Met à jour l'URL en gardant toujours recherche + filtre + tri + page. */
+  const updateUrl = (patch: {
+    recherche?: string;
+    annee?: ParcoursAnnee;
+    tri?: ParcoursSort;
+    page?: number;
+    resetPage?: boolean;
+  }) => {
+    const next = toParcoursSearchParams({
+      // Valeurs actuelles du hook = source fiable (évite de perdre la recherche)
+      recherche: patch.recherche ?? search,
+      annee: patch.annee ?? filterYear,
+      tri: patch.tri ?? sortOrder,
+      page: patch.resetPage ? 1 : (patch.page ?? currentPage),
+    });
+    saveParcoursSearch(next);
+    navigate({ search: next, replace: true });
+  };
 
   const loadParcours = () => {
     setIsLoading(true);
@@ -60,6 +88,18 @@ export function ParcoursPage() {
 
   useEffect(() => {
     loadParcours();
+  }, []);
+
+  // Restaure les filtres sauvegardés si on revient sur /parcours sans params
+  useEffect(() => {
+    if (hasParcoursSearchState(urlSearch)) {
+      saveParcoursSearch(urlSearch);
+      return;
+    }
+    const saved = loadParcoursSearch();
+    if (saved && hasParcoursSearchState(saved)) {
+      navigate({ search: saved, replace: true });
+    }
   }, []);
 
   const notify = (msg: string) => {
@@ -92,16 +132,25 @@ export function ParcoursPage() {
     });
   }, [parcoursList, filterYear, search, sortOrder]);
 
-  // Retour page 1 quand la recherche, le filtre ou le tri change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, filterYear, sortOrder]);
-
   const { totalPages, items: paginatedParcours } = paginateItems(
     filteredParcours,
     currentPage,
     PAGE_SIZE
   );
+
+  // Si l'URL demande une page trop haute, on la corrige
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      const next = toParcoursSearchParams({
+        recherche: search,
+        annee: filterYear,
+        tri: sortOrder,
+        page: totalPages,
+      });
+      saveParcoursSearch(next);
+      navigate({ search: next, replace: true });
+    }
+  }, [currentPage, totalPages, search, filterYear, sortOrder, navigate]);
 
   // Aperçu limité pour rester lisible pendant la saisie
   const searchPreview = filteredParcours.slice(0, 5);
@@ -181,7 +230,7 @@ export function ParcoursPage() {
               placeholder="Rechercher un parcours"
               value={search}
               onChange={(e) => {
-                setSearch(e.target.value);
+                updateUrl({ recherche: e.target.value, resetPage: true });
                 setPreviewOpen(true);
               }}
               onFocus={() => setPreviewOpen(true)}
@@ -208,7 +257,7 @@ export function ParcoursPage() {
                           className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-zinc-50"
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={() => {
-                            setSearch(p.nomParcours);
+                            updateUrl({ recherche: p.nomParcours, resetPage: true });
                             setPreviewOpen(false);
                           }}
                         >
@@ -237,13 +286,13 @@ export function ParcoursPage() {
                 id="parcours-sort"
                 value={sortOrder}
                 options={PARCOURS_SORT_OPTIONS}
-                onChange={setSortOrder}
+                onChange={(value) => updateUrl({ tri: value, resetPage: true })}
               />
             </div>
 
             <div className="flex w-full items-center gap-1 overflow-x-auto rounded-md border border-zinc-200 bg-white p-0.5 sm:w-auto lg:shrink-0">
               <button
-                onClick={() => setFilterYear("ALL")}
+                onClick={() => updateUrl({ annee: "ALL", resetPage: true })}
                 className={`rounded px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
                   filterYear === "ALL"
                     ? "bg-zinc-900 text-white"
@@ -253,7 +302,7 @@ export function ParcoursPage() {
                 Tous ({parcoursList.length})
               </button>
               <button
-                onClick={() => setFilterYear(1)}
+                onClick={() => updateUrl({ annee: 1, resetPage: true })}
                 className={`rounded px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
                   filterYear === 1
                     ? "bg-violet-800 text-white"
@@ -263,7 +312,7 @@ export function ParcoursPage() {
                 M1 ({parcoursList.filter((p) => p.anneeFormation === 1).length})
               </button>
               <button
-                onClick={() => setFilterYear(2)}
+                onClick={() => updateUrl({ annee: 2, resetPage: true })}
                 className={`rounded px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
                   filterYear === 2
                     ? "bg-teal-700 text-white"
@@ -343,7 +392,7 @@ export function ParcoursPage() {
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
-                onPageChange={setCurrentPage}
+                onPageChange={(page) => updateUrl({ page })}
               />
             </div>
           )}
