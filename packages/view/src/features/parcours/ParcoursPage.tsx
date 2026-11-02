@@ -168,7 +168,7 @@ export function ParcoursPage() {
                           </span>
                           <span
                             className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-white ${
-                              isM1 ? "bg-purple-900" : "bg-cyan-800"
+                              isM1 ? "bg-violet-700" : "bg-teal-600"
                             }`}
                           >
                             {isM1 ? "M1" : "M2"}
@@ -201,8 +201,8 @@ export function ParcoursPage() {
               onClick={() => setFilterYear(1)}
               className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
                 filterYear === 1
-                  ? "bg-purple-900 text-white shadow-2xs"
-                  : "text-purple-900 hover:bg-purple-50"
+                  ? "bg-violet-700 text-white shadow-2xs"
+                  : "text-violet-700 hover:bg-violet-50"
               }`}
             >
               M1 ({parcoursList.filter((p) => p.anneeFormation === 1).length})
@@ -211,8 +211,8 @@ export function ParcoursPage() {
               onClick={() => setFilterYear(2)}
               className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
                 filterYear === 2
-                  ? "bg-cyan-800 text-white shadow-2xs"
-                  : "text-cyan-800 hover:bg-cyan-50"
+                  ? "bg-teal-600 text-white shadow-2xs"
+                  : "text-teal-700 hover:bg-teal-50"
               }`}
             >
               M2 ({parcoursList.filter((p) => p.anneeFormation === 2).length})
@@ -232,43 +232,41 @@ export function ParcoursPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <div className="space-y-2">
               {filteredParcours.map((p) => {
                 const isM1 = p.anneeFormation === 1;
 
                 return (
                   <div
                     key={p.id}
-                    className={`relative flex items-center justify-between rounded-xl border p-4 transition-all hover:shadow-xs ${
+                    className={`relative flex items-center gap-4 rounded-xl border p-3.5 pl-4 transition-all hover:shadow-xs ${
                       isM1
-                        ? "border-purple-200 bg-purple-50/30 hover:border-purple-300"
-                        : "border-cyan-200 bg-cyan-50/30 hover:border-cyan-300"
+                        ? "border-violet-200 bg-violet-50/40 hover:border-violet-300"
+                        : "border-teal-200 bg-teal-50/40 hover:border-teal-300"
                     }`}
                   >
                     <div
-                      className={`absolute left-0 top-3 bottom-3 w-1.5 rounded-r ${
-                        isM1 ? "bg-purple-900" : "bg-cyan-800"
+                      className={`absolute left-0 top-2.5 bottom-2.5 w-1.5 rounded-r ${
+                        isM1 ? "bg-violet-700" : "bg-teal-600"
                       }`}
                     />
 
-                    <div className="pl-3 pr-2 space-y-1">
-                      <span
-                        className={`inline-block px-2.5 py-0.5 text-[11px] font-bold uppercase rounded text-white ${
-                          isM1 ? "bg-purple-900" : "bg-cyan-800"
-                        }`}
-                      >
-                        {isM1 ? "Master 1" : "Master 2"}
-                      </span>
+                    <span
+                      className={`shrink-0 px-2.5 py-0.5 text-[11px] font-bold uppercase rounded text-white ${
+                        isM1 ? "bg-violet-700" : "bg-teal-600"
+                      }`}
+                    >
+                      {isM1 ? "Master 1" : "Master 2"}
+                    </span>
 
-                      <h4 className="text-sm font-semibold text-zinc-900 leading-snug">
-                        {highlightMatch(p.nomParcours, query)}
-                      </h4>
+                    <h4 className="min-w-0 flex-1 text-sm font-semibold text-zinc-900 leading-snug truncate">
+                      {highlightMatch(p.nomParcours, query)}
+                    </h4>
 
-                      <p className="flex items-center gap-1.5 text-xs text-zinc-500">
-                        <Calendar className="h-3.5 w-3.5 text-zinc-400" />
-                        <span>Créé le {formatDate(p.created_at)}</span>
-                      </p>
-                    </div>
+                    <p className="hidden sm:flex shrink-0 items-center gap-1.5 text-xs text-zinc-500">
+                      <Calendar className="h-3.5 w-3.5 text-zinc-400" />
+                      <span>Créé le {formatDate(p.created_at)}</span>
+                    </p>
 
                     <button
                       onClick={() => {
