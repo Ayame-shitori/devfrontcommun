@@ -28,7 +28,7 @@ export function Dialog({ isOpen, onClose, title, icon, children, isLocked }: Dia
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl animate-in zoom-in-95 duration-150"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-4 shadow-xl animate-in zoom-in-95 duration-150 sm:p-6"
       >
         <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
           <div className="flex items-center gap-2">

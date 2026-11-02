@@ -118,14 +118,14 @@ export function ParcoursFormModal({
           <option value={2}>Master 2 (M2)</option>
         </FormSelect>
 
-        <div className="flex justify-between items-center pt-2">
+        <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
           {isEdit ? (
             <Button type="button" variant="danger" loading={loading} onClick={handleDelete} className="text-xs">
               <Trash2 className="h-3.5 w-3.5" /> Supprimer
             </Button>
-          ) : <div />}
+          ) : <div className="hidden sm:block" />}
 
-          <div className="flex gap-2">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row">
             <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
               Annuler
             </Button>
