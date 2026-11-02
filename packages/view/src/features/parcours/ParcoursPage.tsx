@@ -11,6 +11,7 @@ import {
   compareByText,
   type SortOption,
 } from "@/components/ui/SortSelect";
+import { ViewToggle } from "@/components/ui/ViewToggle";
 import { highlightMatch } from "@/utils/highlightMatch";
 import { Plus, FileCog, Calendar, GraduationCap, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { ParcoursFormModal } from "./ParcoursFormModal";
@@ -23,6 +24,7 @@ import {
   toParcoursSearchParams,
   type ParcoursAnnee,
   type ParcoursSort,
+  type ParcoursVue,
 } from "./parcours.search";
 
 const PAGE_SIZE = 10;
@@ -38,8 +40,13 @@ const PARCOURS_SORT_OPTIONS: SortOption<ParcoursSort>[] = [
 export function ParcoursPage() {
   const urlSearch = parcoursRoute.useSearch();
   const navigate = parcoursRoute.useNavigate();
-  const { recherche: search, annee: filterYear, tri: sortOrder, page: currentPage } =
-    resolveParcoursSearch(urlSearch);
+  const {
+    recherche: search,
+    annee: filterYear,
+    tri: sortOrder,
+    page: currentPage,
+    vue,
+  } = resolveParcoursSearch(urlSearch);
 
   const [parcoursList, setParcoursList] = useState<Parcours[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,12 +58,13 @@ export function ParcoursPage() {
   const [pageError, setPageError] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  /** Met à jour l'URL en gardant toujours recherche + filtre + tri + page. */
+  /** Met à jour l'URL en gardant recherche + filtre + tri + page + vue. */
   const updateUrl = (patch: {
     recherche?: string;
     annee?: ParcoursAnnee;
     tri?: ParcoursSort;
     page?: number;
+    vue?: ParcoursVue;
     resetPage?: boolean;
   }) => {
     const next = toParcoursSearchParams({
@@ -65,6 +73,7 @@ export function ParcoursPage() {
       annee: patch.annee ?? filterYear,
       tri: patch.tri ?? sortOrder,
       page: patch.resetPage ? 1 : (patch.page ?? currentPage),
+      vue: patch.vue ?? vue,
     });
     saveParcoursSearch(next);
     navigate({ search: next, replace: true });
@@ -146,11 +155,12 @@ export function ParcoursPage() {
         annee: filterYear,
         tri: sortOrder,
         page: totalPages,
+        vue,
       });
       saveParcoursSearch(next);
       navigate({ search: next, replace: true });
     }
-  }, [currentPage, totalPages, search, filterYear, sortOrder, navigate]);
+  }, [currentPage, totalPages, search, filterYear, sortOrder, vue, navigate]);
 
   // Aperçu limité pour rester lisible pendant la saisie
   const searchPreview = filteredParcours.slice(0, 5);
@@ -281,6 +291,11 @@ export function ParcoursPage() {
           </span>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:ml-auto lg:flex-nowrap">
+            <ViewToggle
+              value={vue}
+              onChange={(value) => updateUrl({ vue: value })}
+            />
+
             <div className="w-full sm:w-44 lg:w-44 lg:shrink-0">
               <SortSelect
                 id="parcours-sort"
@@ -345,49 +360,108 @@ export function ParcoursPage() {
             </div>
           ) : (
             <div className="space-y-5">
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                {paginatedParcours.map((p) => {
-                  const isM1 = p.anneeFormation === 1;
-                  const tone = isM1 ? "violet" : "teal";
+              {vue === "cards" ? (
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  {paginatedParcours.map((p) => {
+                    const isM1 = p.anneeFormation === 1;
+                    const tone = isM1 ? "violet" : "teal";
 
-                  return (
-                    <ListRow
-                      key={p.id}
-                      variant="card"
-                      tone={tone}
-                      onClick={() => {
-                        setSelectedParcours(p);
-                        setIsDetailOpen(true);
-                      }}
-                      actions={
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedParcours(p);
-                            setIsModalOpen(true);
-                          }}
-                          title="Configurer le parcours"
-                          className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50 sm:w-auto"
-                        >
-                          <FileCog className="h-3.5 w-3.5" />
-                          <span>Gérer</span>
-                        </button>
-                      }
-                    >
-                      <ListBadge tone={tone}>{isM1 ? "Master 1" : "Master 2"}</ListBadge>
+                    return (
+                      <ListRow
+                        key={p.id}
+                        variant="card"
+                        tone={tone}
+                        onClick={() => {
+                          setSelectedParcours(p);
+                          setIsDetailOpen(true);
+                        }}
+                        actions={
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedParcours(p);
+                              setIsModalOpen(true);
+                            }}
+                            title="Configurer le parcours"
+                            className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50 sm:w-auto"
+                          >
+                            <FileCog className="h-3.5 w-3.5" />
+                            <span>Gérer</span>
+                          </button>
+                        }
+                      >
+                        <ListBadge tone={tone}>{isM1 ? "Master 1" : "Master 2"}</ListBadge>
 
-                      <h4 className="text-[15px] font-medium leading-snug tracking-tight break-words text-zinc-900">
-                        {highlightMatch(p.nomParcours, query)}
-                      </h4>
+                        <h4 className="text-[15px] font-medium leading-snug tracking-tight break-words text-zinc-900">
+                          {highlightMatch(p.nomParcours, query)}
+                        </h4>
 
-                      <p className="flex items-center gap-1.5 text-xs text-zinc-500">
-                        <Calendar className="h-3.5 w-3.5 text-zinc-400" />
-                        <span>Créé le {formatDate(p.created_at)}</span>
-                      </p>
-                    </ListRow>
-                  );
-                })}
-              </div>
+                        <p className="flex items-center gap-1.5 text-xs text-zinc-500">
+                          <Calendar className="h-3.5 w-3.5 text-zinc-400" />
+                          <span>Créé le {formatDate(p.created_at)}</span>
+                        </p>
+                      </ListRow>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-lg border border-zinc-200">
+                  <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
+                    <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                      <tr>
+                        <th className="px-4 py-3">Année</th>
+                        <th className="px-4 py-3">Nom</th>
+                        <th className="px-4 py-3">Créé le</th>
+                        <th className="px-4 py-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedParcours.map((p) => {
+                        const isM1 = p.anneeFormation === 1;
+                        const tone = isM1 ? "violet" : "teal";
+
+                        return (
+                          <tr
+                            key={p.id}
+                            className="cursor-pointer border-t border-zinc-100 transition-colors hover:bg-zinc-50"
+                            onClick={() => {
+                              setSelectedParcours(p);
+                              setIsDetailOpen(true);
+                            }}
+                          >
+                            <td className="px-4 py-3">
+                              <ListBadge tone={tone}>
+                                {isM1 ? "Master 1" : "Master 2"}
+                              </ListBadge>
+                            </td>
+                            <td className="px-4 py-3 font-medium text-zinc-900">
+                              {highlightMatch(p.nomParcours, query)}
+                            </td>
+                            <td className="px-4 py-3 text-zinc-500">
+                              {formatDate(p.created_at)}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedParcours(p);
+                                  setIsModalOpen(true);
+                                }}
+                                title="Configurer le parcours"
+                                className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50"
+                              >
+                                <FileCog className="h-3.5 w-3.5" />
+                                <span>Gérer</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
 
               <Pagination
                 currentPage={currentPage}

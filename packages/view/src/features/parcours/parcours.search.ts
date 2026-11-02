@@ -2,15 +2,18 @@
 
 export type ParcoursSort = "desc" | "asc" | "name-asc" | "name-desc";
 export type ParcoursAnnee = "ALL" | 1 | 2;
+export type ParcoursVue = "cards" | "table";
 
 export type ParcoursSearch = {
   recherche?: string;
   annee?: ParcoursAnnee;
   tri?: ParcoursSort;
   page?: number;
+  vue?: ParcoursVue;
 };
 
 const SORT_VALUES: ParcoursSort[] = ["desc", "asc", "name-asc", "name-desc"];
+const VUE_VALUES: ParcoursVue[] = ["cards", "table"];
 
 /** Parse et sécurise les query params venant de l'URL. */
 export function validateParcoursSearch(search: Record<string, unknown>): ParcoursSearch {
@@ -36,11 +39,17 @@ export function validateParcoursSearch(search: Record<string, unknown>): Parcour
   const pageNum = Number(search.page);
   const page = Number.isFinite(pageNum) && pageNum > 1 ? Math.floor(pageNum) : undefined;
 
+  const vue =
+    typeof search.vue === "string" && VUE_VALUES.includes(search.vue as ParcoursVue)
+      ? (search.vue as ParcoursVue)
+      : undefined;
+
   return {
     recherche: rawRecherche?.trim() ? rawRecherche : undefined,
     annee,
     tri,
     page,
+    vue,
   };
 }
 
@@ -51,6 +60,7 @@ export function resolveParcoursSearch(search: ParcoursSearch) {
     annee: search.annee ?? ("ALL" as ParcoursAnnee),
     tri: search.tri ?? ("desc" as ParcoursSort),
     page: search.page ?? 1,
+    vue: search.vue ?? ("cards" as ParcoursVue),
   };
 }
 
@@ -60,19 +70,23 @@ export function toParcoursSearchParams(next: {
   annee: ParcoursAnnee;
   tri: ParcoursSort;
   page: number;
+  vue: ParcoursVue;
 }): ParcoursSearch {
   return {
     recherche: next.recherche.trim() ? next.recherche : undefined,
     annee: next.annee === "ALL" ? undefined : next.annee,
     tri: next.tri === "desc" ? undefined : next.tri,
     page: next.page > 1 ? next.page : undefined,
+    vue: next.vue === "cards" ? undefined : next.vue,
   };
 }
 
 const STORAGE_KEY = "parcours-search";
 
 export function hasParcoursSearchState(search: ParcoursSearch) {
-  return Boolean(search.recherche || search.annee || search.tri || search.page);
+  return Boolean(
+    search.recherche || search.annee || search.tri || search.page || search.vue
+  );
 }
 
 /** Sauvegarde locale pour retrouver les filtres en changeant de page du site. */
