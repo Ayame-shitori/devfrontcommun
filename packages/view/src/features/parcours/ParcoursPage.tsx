@@ -430,6 +430,7 @@ export function ParcoursPage() {
       <ParcoursFormModal
         isOpen={isModalOpen}
         initialData={selectedParcours}
+        existingParcours={parcoursList}
         onClose={() => setIsModalOpen(false)}
         onSuccess={handleSaveSuccess}
         onDeleteSuccess={handleDeleteSuccess}

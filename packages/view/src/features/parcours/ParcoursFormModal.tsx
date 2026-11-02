@@ -10,9 +10,18 @@ interface Props {
   onSuccess: (p: Parcours, msg: string) => void;
   onDeleteSuccess: (id: number, msg: string) => void;
   initialData?: Parcours | null;
+  /** Liste actuelle pour détecter un doublon nom + année. */
+  existingParcours?: Parcours[];
 }
 
-export function ParcoursFormModal({ isOpen, onClose, onSuccess, onDeleteSuccess, initialData }: Props) {
+export function ParcoursFormModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  onDeleteSuccess,
+  initialData,
+  existingParcours = [],
+}: Props) {
   const isEdit = Boolean(initialData);
   const [nomParcours, setNomParcours] = useState("");
   const [anneeFormation, setAnneeFormation] = useState<1 | 2>(1);
@@ -27,12 +36,26 @@ export function ParcoursFormModal({ isOpen, onClose, onSuccess, onDeleteSuccess,
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nomParcours.trim()) return setError("Veuillez saisir un intitulé.");
+    const nom = nomParcours.trim();
+    if (!nom) return setError("Veuillez saisir un intitulé.");
+
+    // Même nom + même année (M1 ou M2) = déjà utilisé
+    const nameTaken = existingParcours.some(
+      (p) =>
+        p.id !== initialData?.id &&
+        p.anneeFormation === anneeFormation &&
+        p.nomParcours.trim().toLowerCase() === nom.toLowerCase()
+    );
+    if (nameTaken) {
+      return setError(
+        `Ce nom est déjà utilisé pour un parcours ${anneeFormation === 1 ? "M1" : "M2"}.`
+      );
+    }
 
     setLoading(true);
     setError(null);
     try {
-      const payload = { nomParcours: nomParcours.trim(), anneeFormation };
+      const payload = { nomParcours: nom, anneeFormation };
       const { parcours } = isEdit && initialData
         ? await updateParcours(initialData.id, payload)
         : await createParcours(payload);
