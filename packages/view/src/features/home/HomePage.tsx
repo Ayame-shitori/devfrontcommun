@@ -7,6 +7,7 @@ export function HomePage() {
         title="Gestion des parcours & notes"
         description="Bienvenue sur l'espace de gestion de l'UPJV."
       />
+      
     </PageContainer>
   );
 }
