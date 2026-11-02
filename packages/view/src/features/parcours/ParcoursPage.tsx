@@ -2,28 +2,28 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, PageContainer, PageHeader } from "@/components/layout/Page";
 import { Dialog } from "@/components/ui/Dialog";
 import { Button, FormInput } from "@/components/ui/FormElements";
-import { Plus, FileCog, Calendar, GraduationCap, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Pagination, paginateItems } from "@/components/ui/Pagination";
+import {
+  SortSelect,
+  compareByDate,
+  compareByText,
+  type SortOption,
+} from "@/components/ui/SortSelect";
+import { highlightMatch } from "@/utils/highlightMatch";
+import { Plus, FileCog, Calendar, GraduationCap, CheckCircle2, AlertCircle } from "lucide-react";
 import { ParcoursFormModal } from "./ParcoursFormModal";
 import { fetchParcours, type Parcours } from "./parcours.api";
 
 const PAGE_SIZE = 10;
 
-/** Surligne la partie du nom qui correspond à la recherche. */
-function highlightMatch(text: string, query: string) {
-  const q = query.trim();
-  if (!q) return text;
+type ParcoursSort = "desc" | "asc" | "name-asc" | "name-desc";
 
-  const index = text.toLowerCase().indexOf(q.toLowerCase());
-  if (index === -1) return text;
-
-  return (
-    <>
-      {text.slice(0, index)}
-      <mark className="rounded-sm bg-amber-200/80 px-0.5 text-inherit">{text.slice(index, index + q.length)}</mark>
-      {text.slice(index + q.length)}
-    </>
-  );
-}
+const PARCOURS_SORT_OPTIONS: SortOption<ParcoursSort>[] = [
+  { value: "desc", label: "Plus récents" },
+  { value: "asc", label: "Plus anciens" },
+  { value: "name-asc", label: "Nom A → Z" },
+  { value: "name-desc", label: "Nom Z → A" },
+];
 
 export function ParcoursPage() {
   const [parcoursList, setParcoursList] = useState<Parcours[]>([]);
@@ -35,6 +35,7 @@ export function ParcoursPage() {
   const [pageError, setPageError] = useState<string | null>(null);
 
   const [filterYear, setFilterYear] = useState<"ALL" | 1 | 2>("ALL");
+  const [sortOrder, setSortOrder] = useState<ParcoursSort>("desc");
   const [search, setSearch] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -57,22 +58,38 @@ export function ParcoursPage() {
 
   const filteredParcours = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return parcoursList.filter((p) => {
+    const filtered = parcoursList.filter((p) => {
       const matchYear = filterYear === "ALL" || p.anneeFormation === filterYear;
       const matchSearch = query === "" || p.nomParcours.toLowerCase().includes(query);
       return matchYear && matchSearch;
     });
-  }, [parcoursList, filterYear, search]);
 
-  // Retour page 1 quand la recherche ou le filtre change
+    return [...filtered].sort((a, b) => {
+      if (sortOrder === "name-asc" || sortOrder === "name-desc") {
+        return compareByText(
+          a.nomParcours,
+          b.nomParcours,
+          sortOrder === "name-asc" ? "asc" : "desc"
+        );
+      }
+
+      return compareByDate(
+        a.created_at ?? a.id,
+        b.created_at ?? b.id,
+        sortOrder
+      );
+    });
+  }, [parcoursList, filterYear, search, sortOrder]);
+
+  // Retour page 1 quand la recherche, le filtre ou le tri change
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, filterYear]);
+  }, [search, filterYear, sortOrder]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredParcours.length / PAGE_SIZE));
-  const paginatedParcours = filteredParcours.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
+  const { totalPages, items: paginatedParcours } = paginateItems(
+    filteredParcours,
+    currentPage,
+    PAGE_SIZE
   );
 
   // Aperçu limité pour rester lisible pendant la saisie
@@ -202,37 +219,48 @@ export function ParcoursPage() {
             {filteredParcours.length} parcours affiché{filteredParcours.length > 1 ? "s" : ""}
           </span>
 
-          <div className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 p-1">
-            <button
-              onClick={() => setFilterYear("ALL")}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                filterYear === "ALL"
-                  ? "bg-white text-zinc-900 shadow-2xs"
-                  : "text-zinc-600 hover:text-zinc-900"
-              }`}
-            >
-              Tous ({parcoursList.length})
-            </button>
-            <button
-              onClick={() => setFilterYear(1)}
-              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                filterYear === 1
-                  ? "bg-violet-700 text-white shadow-2xs"
-                  : "text-violet-700 hover:bg-violet-50"
-              }`}
-            >
-              M1 ({parcoursList.filter((p) => p.anneeFormation === 1).length})
-            </button>
-            <button
-              onClick={() => setFilterYear(2)}
-              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                filterYear === 2
-                  ? "bg-teal-600 text-white shadow-2xs"
-                  : "text-teal-700 hover:bg-teal-50"
-              }`}
-            >
-              M2 ({parcoursList.filter((p) => p.anneeFormation === 2).length})
-            </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="w-44">
+              <SortSelect
+                id="parcours-sort"
+                value={sortOrder}
+                options={PARCOURS_SORT_OPTIONS}
+                onChange={setSortOrder}
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 p-1">
+              <button
+                onClick={() => setFilterYear("ALL")}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  filterYear === "ALL"
+                    ? "bg-white text-zinc-900 shadow-2xs"
+                    : "text-zinc-600 hover:text-zinc-900"
+                }`}
+              >
+                Tous ({parcoursList.length})
+              </button>
+              <button
+                onClick={() => setFilterYear(1)}
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  filterYear === 1
+                    ? "bg-violet-700 text-white shadow-2xs"
+                    : "text-violet-700 hover:bg-violet-50"
+                }`}
+              >
+                M1 ({parcoursList.filter((p) => p.anneeFormation === 1).length})
+              </button>
+              <button
+                onClick={() => setFilterYear(2)}
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  filterYear === 2
+                    ? "bg-teal-600 text-white shadow-2xs"
+                    : "text-teal-700 hover:bg-teal-50"
+                }`}
+              >
+                M2 ({parcoursList.filter((p) => p.anneeFormation === 2).length})
+              </button>
+            </div>
           </div>
         </div>
 
@@ -315,33 +343,11 @@ export function ParcoursPage() {
                 })}
               </div>
 
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-3 border-t border-zinc-100 pt-3">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                    disabled={currentPage === 1}
-                    aria-label="Page précédente"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 disabled:pointer-events-none disabled:opacity-40"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-
-                  <span className="text-xs font-medium text-zinc-600">
-                    Page {currentPage} / {totalPages}
-                  </span>
-
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-                    disabled={currentPage === totalPages}
-                    aria-label="Page suivante"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 disabled:pointer-events-none disabled:opacity-40"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
             </div>
           )}
         </Card>
