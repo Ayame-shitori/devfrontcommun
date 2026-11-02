@@ -10,7 +10,7 @@ import {
   type SortOption,
 } from "@/components/ui/SortSelect";
 import { highlightMatch } from "@/utils/highlightMatch";
-import { Plus, FileCog, Calendar, GraduationCap, CheckCircle2, AlertCircle } from "lucide-react";
+import { Plus, FileCog, Calendar, GraduationCap, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { ParcoursFormModal } from "./ParcoursFormModal";
 import { fetchParcours, type Parcours } from "./parcours.api";
 
@@ -27,6 +27,7 @@ const PARCOURS_SORT_OPTIONS: SortOption<ParcoursSort>[] = [
 
 export function ParcoursPage() {
   const [parcoursList, setParcoursList] = useState<Parcours[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedParcours, setSelectedParcours] = useState<Parcours | null>(null);
@@ -40,15 +41,24 @@ export function ParcoursPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
-  useEffect(() => {
+  const loadParcours = () => {
+    setIsLoading(true);
+    setPageError(null);
+
     fetchParcours()
       .then((data) => {
         setParcoursList(data);
-        setPageError(null);
       })
       .catch((err: Error) => {
         setPageError(err.message);
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
+  };
+
+  useEffect(() => {
+    loadParcours();
   }, []);
 
   const notify = (msg: string) => {
@@ -151,9 +161,14 @@ export function ParcoursPage() {
         )}
 
         {pageError && (
-          <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
-            <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
-            {pageError}
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
+              {pageError}
+            </div>
+            <Button type="button" variant="secondary" onClick={loadParcours} disabled={isLoading}>
+              Réessayer
+            </Button>
           </div>
         )}
 
@@ -265,14 +280,21 @@ export function ParcoursPage() {
         </div>
 
         <Card>
-          {filteredParcours.length === 0 ? (
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Loader2 className="mb-2 h-8 w-8 animate-spin text-sky-950" />
+              <p className="text-sm font-medium text-zinc-700">Chargement des parcours…</p>
+            </div>
+          ) : filteredParcours.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <GraduationCap className="h-10 w-10 text-zinc-300 mb-2" />
               <p className="text-sm font-medium text-zinc-700">Aucun parcours disponible</p>
               <p className="text-xs text-zinc-400 mt-1">
                 {search.trim()
                   ? "Aucun parcours ne correspond à cette recherche."
-                  : "Aucun parcours n'est enregistré pour cette sélection."}
+                  : filterYear !== "ALL"
+                    ? "Aucun parcours pour ce filtre."
+                    : "Aucun parcours n'est enregistré."}
               </p>
             </div>
           ) : (
